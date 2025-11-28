@@ -22,7 +22,7 @@ A full-stack application built with Nuxt 3, TypeScript, and Supabase featuring a
 
 1. Clone the repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Harshith-ney/Nuxt.git
 cd nuxt_template
 ```
 
