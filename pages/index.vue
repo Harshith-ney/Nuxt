@@ -1,92 +1,78 @@
 <script setup lang="ts">
-/*
-Example of how to use Nuxt's server API to get/send data from Supabase
-    This is how we do it in actual production for security
+const user = useSupabaseUser()
 
-const body = {
-  table: "table_name",
-  bucket: "bucket_name",
-  fileName: "file_name",
+watch(user, () => {
+  if (!user.value) {
+    navigateTo('/login')
+  }
+}, { immediate: true })
+
+const entries = ref<any[]>([])
+const userRole = ref<string>('basic')
+const loading = ref(true)
+
+async function loadData() {
+  if (!user.value) return
+  
+  // Get user's role from profiles
+  const profile = await $fetch('/api/getProfile', {
+    method: 'POST',
+    body: { user_id: user.value.id }
+  })
+  
+  userRole.value = profile?.role || 'basic'
+  
+  // Get entries based on role
+  const data = await $fetch('/api/getEntries', {
+    method: 'POST',
+    body: { 
+      user_id: user.value.id,
+      role: userRole.value
+    }
+  })
+  
+  entries.value = data || []
+  loading.value = false
 }
 
-const data = await $fetch("/api/fetchData", {
-  method: "POST",
-  body,
-});
-
- // uses Nuxt's special $fetch function, basically the same as fetch
-
-console.log(data); // either table data in JSON format or URL to image/whatever asset
-*/
-
-// Create dynamic reference to table data
-//    Anything inside a 'ref' vue/nuxt will watch for changes and update the DOM
-const dataReference = ref<any>(null);
-const retrievedData = await $fetch("/api/fetchData", {
-  method: "POST",
-  body: {
-    table: "test",
-  },
-});
-
-if (retrievedData && retrievedData.length > 0) {
-  dataReference.value = retrievedData;
-} else {
-  dataReference.value = [
-    { id: 1, message: "Sample Data 1" },
-    { id: 2, message: "Sample Data 2" },
-    { id: 3, message: "Sample Data 3" },
-    { id: 4, message: "Sample Data 4" },
-    { id: 5, message: "Sample Data 5" },
-  ];
-}
-
-// Using a reactive form state to handle user input
-const formState = reactive({
-  message: "",
-});
-
-// Fill in with code to use our api to send data to Supabase
-async function submitForm() {
-  console.log("Form State: ", formState);
-  // YOUR CODE HERE
-}
+loadData()
 </script>
 
 <template>
-  <!-- Example of how to use a reusable component. No import is needed, all components are automatically imported. -->
   <Header />
-  <div class="flex flex-col items-center justify-center">
-    <!-- A basic form is provided as an example. Modify it as you please. -->
-    <div class="flex flex-col justify-center items-center gap-4 w-full">
-      <h2 class="text-2xl font-bold">Table Data</h2>
-      <ul>
-        <!-- Example of how to cleanly display data via vue loops -->
-        <li v-for="item in dataReference" :key="item.id">
-          <!-- Example of dynmaically displaying data in our HTML -->
-          <span>{{ item }}</span>
-        </li>
-      </ul>
+  <div class="p-8">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">My Entries</h1>
+      <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded">
+        Role: {{ userRole }}
+      </span>
     </div>
 
-    <div class="flex flex-col justify-center items-center gap-4 w-full mt-8">
-      <h2 class="text-2xl font-bold">Form</h2>
-      <p>Form State {{ formState }}</p>
-      <div class="flex flex-row gap-4">
-        <p>Message:</p>
-        <!-- v-model allows the input to simultaneously dipslay and update the formState.message variable -->
-        <input
-          type="text"
-          v-model="formState.message"
-          placeholder="Enter a message"
-        />
-      </div>
-      <button
-        class="bg-blue-500 text-white px-4 py-2 rounded-md"
-        @click="submitForm"
-      >
-        Submit
-      </button>
+    <div v-if="loading" class="text-gray-500">Loading...</div>
+
+    <div v-else-if="entries.length === 0" class="text-gray-500">
+      No entries yet. Go to Add Data to create one.
     </div>
+
+    <table v-else class="w-full border-collapse border">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border p-3 text-left">ID</th>
+          <th class="border p-3 text-left">Title</th>
+          <th class="border p-3 text-left">Content</th>
+          <th v-if="userRole === 'admin'" class="border p-3 text-left">User ID</th>
+          <th class="border p-3 text-left">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="entry in entries" :key="entry.id">
+          <td class="border p-3">{{ entry.id }}</td>
+          <td class="border p-3">{{ entry.title }}</td>
+          <td class="border p-3">{{ entry.content }}</td>
+          <td v-if="userRole === 'admin'" class="border p-3 text-xs">{{ entry.user_id }}</td>
+          <td class="border p-3">{{ new Date(entry.created_at).toLocaleDateString() }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>

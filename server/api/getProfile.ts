@@ -5,19 +5,13 @@ export default defineEventHandler(async (event) => {
   const client = await serverSupabaseClient(event);
 
   const { data, error } = await client
-    .from('entries')
-    .insert({
-      user_id: body.user_id,
-      title: body.title,
-      content: body.content
-    })
-    .select();
+    .from('profiles')
+    .select('*')
+    .eq('id', body.user_id)
+    .single();
 
   if (error) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: error.message,
-    });
+    return null;
   }
 
   return data;

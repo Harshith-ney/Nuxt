@@ -1,17 +1,12 @@
 import { serverSupabaseClient } from "#supabase/server";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
   const client = await serverSupabaseClient(event);
 
   const { data, error } = await client
-    .from('entries')
-    .insert({
-      user_id: body.user_id,
-      title: body.title,
-      content: body.content
-    })
-    .select();
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
 
   if (error) {
     throw createError({

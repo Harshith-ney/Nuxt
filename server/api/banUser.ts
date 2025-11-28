@@ -4,14 +4,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const client = await serverSupabaseClient(event);
 
-  const { data, error } = await client
-    .from('entries')
-    .insert({
-      user_id: body.user_id,
-      title: body.title,
-      content: body.content
-    })
-    .select();
+  const { error } = await client
+    .from('profiles')
+    .update({ banned: body.banned })
+    .eq('id', body.user_id);
 
   if (error) {
     throw createError({
@@ -20,5 +16,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return data;
+  return { success: true };
 });

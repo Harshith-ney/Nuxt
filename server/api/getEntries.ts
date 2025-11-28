@@ -4,14 +4,14 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const client = await serverSupabaseClient(event);
 
-  const { data, error } = await client
-    .from('entries')
-    .insert({
-      user_id: body.user_id,
-      title: body.title,
-      content: body.content
-    })
-    .select();
+  let query = client.from('entries').select('*');
+
+  // If basic user, only show their entries
+  if (body.role !== 'admin') {
+    query = query.eq('user_id', body.user_id);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     throw createError({
